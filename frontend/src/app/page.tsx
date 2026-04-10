@@ -11,6 +11,7 @@ import { Settings, Users } from 'lucide-react';
 export default function Home() {
   const { clients, services, addClient, updateService, isLoaded, isOnline, syncData } = useSheets();
   const [showForm, setShowForm] = useState(false);
+  const [showClientOnly, setShowClientOnly] = useState(false);
   const [showClients, setShowClients] = useState(false);
 
   const handleSaveClient = (client: Client) => {
@@ -27,6 +28,7 @@ export default function Home() {
         <Dashboard 
           clients={clients} 
           onAddClick={() => setShowForm(true)}
+          onAddClientOnly={() => setShowClientOnly(true)}
           onToggleComplete={handleToggleComplete}
         />
 
@@ -82,6 +84,18 @@ export default function Home() {
             onClose={() => setShowForm(false)}
             onSave={handleSaveClient}
             existingClients={clients}
+          />
+        )}
+
+        {showClientOnly && (
+          <ClientForm 
+            onClose={() => setShowClientOnly(false)}
+            onSave={(client) => {
+              addClient({ ...client, services: [] });
+              setShowClientOnly(false);
+            }}
+            existingClients={clients}
+            clientOnlyMode={true}
           />
         )}
       </div>

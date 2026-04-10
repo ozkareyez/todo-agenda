@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 interface DashboardProps {
   clients: Client[];
   onAddClick: () => void;
+  onAddClientOnly?: () => void;
   onToggleComplete?: (clientId: string, serviceId: string) => void;
 }
 
@@ -19,7 +20,7 @@ interface ServiceWithClient extends Service {
   completed?: boolean;
 }
 
-export function Dashboard({ clients, onAddClick, onToggleComplete }: DashboardProps) {
+export function Dashboard({ clients, onAddClick, onAddClientOnly, onToggleComplete }: DashboardProps) {
   const [period, setPeriod] = useState<FilterPeriod>('today');
   const [showReminders, setShowReminders] = useState(false);
 
@@ -141,12 +142,23 @@ export function Dashboard({ clients, onAddClick, onToggleComplete }: DashboardPr
             <h1 className="text-3xl font-bold text-primary tracking-tight">Agenda</h1>
             <p className="text-muted text-sm mt-1">{format(new Date(), "EEEE, d 'de' MMMM", { locale: es })}</p>
           </div>
-          <button
-            onClick={onAddClick}
-            className="w-12 h-12 rounded-full bg-accent text-white flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
-          >
-            <Plus size={24} />
-          </button>
+          <div className="flex gap-2">
+            {onAddClientOnly && clients.length > 0 && (
+              <button
+                onClick={onAddClientOnly}
+                className="w-12 h-12 rounded-full bg-surface text-primary flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 border border-border"
+                title="Agregar cliente sin cita"
+              >
+                <User size={20} />
+              </button>
+            )}
+            <button
+              onClick={onAddClick}
+              className="w-12 h-12 rounded-full bg-accent text-white flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+            >
+              <Plus size={24} />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3">

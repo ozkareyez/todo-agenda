@@ -10,6 +10,7 @@ interface ClientFormProps {
   onClose: () => void;
   onSave: (client: Client) => void;
   existingClients?: Client[];
+  clientOnlyMode?: boolean;
 }
 
 interface ServiceFormData {
@@ -25,13 +26,14 @@ interface ServiceOption {
   price: number;
 }
 
-export function ClientForm({ onClose, onSave, existingClients = [] }: ClientFormProps) {
-  const [showNewClient, setShowNewClient] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState<string>('');
+export function ClientForm({ onClose, onSave, existingClients = [], clientOnlyMode = false }: ClientFormProps) {
+  const [showNewClient, setShowNewClient] = useState(clientOnlyMode || false);
+  const [selectedClientId, setSelectedClientId] = useState<string>(clientOnlyMode ? 'new' : '');
   const [clientName, setClientName] = useState('');
   const [clientAddress, setClientAddress] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
+  const [showServicesSection, setShowServicesSection] = useState(!clientOnlyMode);
   const [services, setServices] = useState<ServiceFormData[]>([
     { name: '', price: '', date: format(new Date(), 'yyyy-MM-dd'), time: '09:00' }
   ]);
@@ -103,7 +105,7 @@ export function ClientForm({ onClose, onSave, existingClients = [] }: ClientForm
     setServices(updated);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!clientName.trim() || !clientAddress.trim()) {
@@ -111,20 +113,20 @@ export function ClientForm({ onClose, onSave, existingClients = [] }: ClientForm
       return;
     }
 
-    const validServices = services.filter(s => s.name.trim() && s.price.trim());
-    
-    if (validServices.length === 0) {
-      toast.error('Selecciona al menos un servicio');
+    const clientId = generateId();
+    const validServices = showServicesSection ? services.filter(s => s.name.trim()) : [];
+    const hasAnyService = validServices.length > 0;
+
+    if (!hasAnyService && !clientOnlyMode) {
+      toast.error('Agrega al menos un servicio o usa el modo "Solo cliente"');
       return;
     }
 
-    // Siempre generar un nuevo ID único para cada cita
-    const clientId = generateId();
     const clientServices: Service[] = validServices.map(s => ({
       id: generateId(),
       clientId,
       name: s.name.trim(),
-      price: parseFloat(s.price) || 0,
+      price: s.price.trim() ? parseFloat(s.price) : 0,
       date: s.date,
       time: s.time,
       reminderSent: false,
@@ -140,7 +142,7 @@ export function ClientForm({ onClose, onSave, existingClients = [] }: ClientForm
     };
 
     onSave(newClient);
-    toast.success(`Cliente ${clientName} agregado`);
+    toast.success(`Cliente ${clientName} agregado${clientOnlyMode ? ' sin cita' : ''}`);
     onClose();
   };
 
@@ -154,7 +156,9 @@ export function ClientForm({ onClose, onSave, existingClients = [] }: ClientForm
       <div className="relative w-full sm:max-w-lg max-h-[90vh] bg-surface rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden animate-scale-in">
         <div className="sticky top-0 bg-surface border-b border-border/50 p-4 z-10">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-primary">Nueva Cita</h2>
+            <h2 className="text-xl font-bold text-primary">
+              {clientOnlyMode ? 'Nuevo Cliente' : 'Nueva Cita'}
+            </h2>
             <button 
               onClick={onClose}
               className="w-8 h-8 rounded-full bg-background flex items-center justify-center hover:bg-border/50 transition-colors"
@@ -222,72 +226,87 @@ export function ClientForm({ onClose, onSave, existingClients = [] }: ClientForm
             </>
           )}
 
-          <div className="border-t border-border pt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-primary">Servicios</h3>
-              <button
-                type="button"
-                onClick={addService}
-                className="text-xs text-accent font-medium flex items-center gap-1"
-              >
-                <Plus className="w-3 h-3" />
-                Agregar
-              </button>
-            </div>
-
-            {services.map((service, idx) => (
-              <div 
-                key={idx} 
-                className="relative bg-background rounded-xl p-3 border border-border/50 mb-2"
-              >
-                {services.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeService(idx)}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-50 flex items-center justify-center"
-                  >
-                    <Trash2 className="w-3 h-3 text-red-500" />
-                  </button>
-                )}
-
-                <div className="space-y-2">
-                  <select
-                    value={service.name}
-                    onChange={(e) => updateService(idx, 'name', e.target.value)}
-                    className="w-full px-2 py-1.5 rounded-lg border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
-                  >
-                    <option value="">Seleccionar servicio...</option>
-                    {serviceOptions.map(opt => (
-                      <option key={opt.id} value={opt.name}>
-                        {opt.name} - ${opt.price.toLocaleString()}
-                      </option>
-                    ))}
-                  </select>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="block text-[10px] font-medium text-muted mb-0.5">Fecha</label>
-                      <input
-                        type="date"
-                        value={service.date}
-                        onChange={(e) => updateService(idx, 'date', e.target.value)}
-                        className="w-full px-2 py-1 rounded-lg border border-border bg-surface text-xs"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-medium text-muted mb-0.5">Hora</label>
-                      <input
-                        type="time"
-                        value={service.time}
-                        onChange={(e) => updateService(idx, 'time', e.target.value)}
-                        className="w-full px-2 py-1 rounded-lg border border-border bg-surface text-xs"
-                      />
-                    </div>
+          {!clientOnlyMode && (
+            <div className="border-t border-border pt-4">
+              {!showServicesSection ? (
+                <button
+                  type="button"
+                  onClick={() => setShowServicesSection(true)}
+                  className="w-full py-3 rounded-xl border border-dashed border-border text-muted text-sm flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agregar servicio (opcional)
+                </button>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-primary">Servicios</h3>
+                    <button
+                      type="button"
+                      onClick={addService}
+                      className="text-xs text-accent font-medium flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Agregar
+                    </button>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+
+                  {services.map((service, idx) => (
+                    <div 
+                      key={idx} 
+                      className="relative bg-background rounded-xl p-3 border border-border/50 mb-2"
+                    >
+                      {services.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeService(idx)}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-50 flex items-center justify-center"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-500" />
+                        </button>
+                      )}
+
+                      <div className="space-y-2">
+                        <select
+                          value={service.name}
+                          onChange={(e) => updateService(idx, 'name', e.target.value)}
+                          className="w-full px-2 py-1.5 rounded-lg border border-border bg-surface text-sm focus:outline-none focus:ring-2 focus:ring-accent/30"
+                        >
+                          <option value="">Seleccionar servicio...</option>
+                          {serviceOptions.map(opt => (
+                            <option key={opt.id} value={opt.name}>
+                              {opt.name} - ${opt.price.toLocaleString()}
+                            </option>
+                          ))}
+                        </select>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-medium text-muted mb-0.5">Fecha</label>
+                            <input
+                              type="date"
+                              value={service.date}
+                              onChange={(e) => updateService(idx, 'date', e.target.value)}
+                              className="w-full px-2 py-1 rounded-lg border border-border bg-surface text-xs"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-medium text-muted mb-0.5">Hora</label>
+                            <input
+                              type="time"
+                              value={service.time}
+                              onChange={(e) => updateService(idx, 'time', e.target.value)}
+                              className="w-full px-2 py-1 rounded-lg border border-border bg-surface text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-2 pt-2">
             <button
