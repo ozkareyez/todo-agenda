@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isToday, isThisWeek, isThisMonth, parseISO, isBefore, startOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Calendar, Clock, MapPin, DollarSign, ChevronRight, User, Bell, Download, Plus, CheckCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, DollarSign, ChevronRight, User, Bell, Download, Plus, CheckCircle, Pencil, Trash2, ExternalLink } from 'lucide-react';
 import { Client, FilterPeriod, Service } from '@/types';
 import { toast } from 'sonner';
 
@@ -12,6 +12,8 @@ interface DashboardProps {
   onAddClick: () => void;
   onAddClientOnly?: () => void;
   onToggleComplete?: (clientId: string, serviceId: string) => void;
+  onEditService?: (clientId: string, service: Service) => void;
+  onDeleteService?: (clientId: string, serviceId: string) => void;
 }
 
 interface ServiceWithClient extends Service {
@@ -20,7 +22,7 @@ interface ServiceWithClient extends Service {
   completed?: boolean;
 }
 
-export function Dashboard({ clients, onAddClick, onAddClientOnly, onToggleComplete }: DashboardProps) {
+export function Dashboard({ clients, onAddClick, onAddClientOnly, onToggleComplete, onEditService, onDeleteService }: DashboardProps) {
   const [period, setPeriod] = useState<FilterPeriod>('today');
   const [showReminders, setShowReminders] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
@@ -299,15 +301,49 @@ export function Dashboard({ clients, onAddClick, onAddClientOnly, onToggleComple
                         <Clock className="w-3.5 h-3.5" />
                         {service.time}
                       </span>
-                      <span className="flex items-center gap-1 truncate">
-                        <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-                        {service.clientAddress}
-                      </span>
+                      <a 
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(service.clientAddress)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 truncate text-accent hover:underline"
+                    >
+                      <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                      {service.clientAddress}
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
                       <span className={`flex items-center gap-1 font-medium ${isCompleted ? 'text-green-600' : 'text-primary'}`}>
                         <DollarSign className="w-3.5 h-3.5" />
                         {formatPrice(service.price)}
                       </span>
                     </div>
+                  </div>
+                  <div className="flex gap-1 mt-2">
+                    {onEditService && (
+                      <button
+                        onClick={() => {
+                          const client = clients.find(c => c.services?.some(s => s.id === service.id));
+                          if (client) onEditService(client.id, service);
+                        }}
+                        className="flex-1 py-1.5 rounded-lg bg-surface border border-border text-xs text-muted flex items-center justify-center gap-1 hover:bg-border/30"
+                      >
+                        <Pencil className="w-3 h-3" />
+                        Editar
+                      </button>
+                    )}
+                    {onDeleteService && (
+                      <button
+                        onClick={() => {
+                          const client = clients.find(c => c.services?.some(s => s.id === service.id));
+                          if (client && onDeleteService) {
+                            onDeleteService(client.id, service.id);
+                          }
+                        }}
+                        className="flex-1 py-1.5 rounded-lg bg-red-50 text-red-500 text-xs flex items-center justify-center gap-1 hover:bg-red-100"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Eliminar
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

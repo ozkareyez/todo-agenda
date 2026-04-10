@@ -9,17 +9,36 @@ import { Client, Service } from '@/types';
 import { Settings, Users } from 'lucide-react';
 
 export default function Home() {
-  const { clients, services, addClient, updateService, isLoaded, isOnline, syncData } = useSheets();
+  const { clients, services, addClient, updateService, removeServiceFromClient, updateServiceData, isLoaded, isOnline, syncData } = useSheets();
   const [showForm, setShowForm] = useState(false);
   const [showClientOnly, setShowClientOnly] = useState(false);
   const [showClients, setShowClients] = useState(false);
+  const [editingService, setEditingService] = useState<{clientId: string; service: Service} | null>(null);
 
-  const handleSaveClient = (client: Client) => {
-    addClient(client);
+  const handleSaveClient = (client: Client, isEdit?: boolean) => {
+    if (isEdit && editingService) {
+      if (client.services && client.services.length > 0) {
+        updateServiceData(editingService.clientId, client.services[0]);
+      }
+      setEditingService(null);
+    } else {
+      addClient(client);
+    }
   };
 
   const handleToggleComplete = (clientId: string, serviceId: string) => {
     updateService(clientId, serviceId);
+  };
+
+  const handleEditService = (clientId: string, service: Service) => {
+    setEditingService({ clientId, service });
+    setShowForm(true);
+  };
+
+  const handleDeleteService = (clientId: string, serviceId: string) => {
+    if (confirm('¿Eliminar esta cita?')) {
+      removeServiceFromClient(clientId, serviceId);
+    }
   };
 
   return (
@@ -30,6 +49,8 @@ export default function Home() {
           onAddClick={() => setShowForm(true)}
           onAddClientOnly={() => setShowClientOnly(true)}
           onToggleComplete={handleToggleComplete}
+          onEditService={handleEditService}
+          onDeleteService={handleDeleteService}
         />
 
         {clients.length > 0 && (
@@ -81,9 +102,10 @@ export default function Home() {
 
         {showForm && (
           <ClientForm 
-            onClose={() => setShowForm(false)}
+            onClose={() => { setShowForm(false); setEditingService(null); }}
             onSave={handleSaveClient}
             existingClients={clients}
+            editService={editingService || undefined}
           />
         )}
 

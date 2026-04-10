@@ -10,9 +10,13 @@ import { ServiceManager } from './ServiceManager';
 
 interface ClientFormProps {
   onClose: () => void;
-  onSave: (client: Client) => void;
+  onSave: (client: Client, isEdit?: boolean) => void;
   existingClients?: Client[];
   clientOnlyMode?: boolean;
+  editService?: {
+    clientId: string;
+    service: Service;
+  };
 }
 
 interface ServiceFormData {
@@ -28,7 +32,7 @@ interface ServiceOption {
   price: number;
 }
 
-export function ClientForm({ onClose, onSave, existingClients = [], clientOnlyMode = false }: ClientFormProps) {
+export function ClientForm({ onClose, onSave, existingClients = [], clientOnlyMode = false, editService }: ClientFormProps) {
   const [showNewClient, setShowNewClient] = useState(clientOnlyMode || false);
   const [selectedClientId, setSelectedClientId] = useState<string>(clientOnlyMode ? 'new' : '');
   const [clientName, setClientName] = useState('');
@@ -37,9 +41,24 @@ export function ClientForm({ onClose, onSave, existingClients = [], clientOnlyMo
   const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
   const [showServicesSection, setShowServicesSection] = useState(!clientOnlyMode);
   const [showServiceManager, setShowServiceManager] = useState(false);
-  const [services, setServices] = useState<ServiceFormData[]>([
-    { name: '', price: '', date: format(new Date(), 'yyyy-MM-dd'), time: '09:00' }
-  ]);
+  const isEditing = !!editService;
+  const [services, setServices] = useState<ServiceFormData[]>(
+    isEditing 
+      ? [{ name: editService.service.name, price: editService.service.price.toString(), date: editService.service.date, time: editService.service.time }]
+      : [{ name: '', price: '', date: format(new Date(), 'yyyy-MM-dd'), time: '09:00' }]
+  );
+
+  useEffect(() => {
+    if (editService) {
+      const client = existingClients.find(c => c.id === editService.clientId);
+      if (client) {
+        setClientName(client.name);
+        setClientAddress(client.address);
+        setClientPhone(client.phone || '');
+        setSelectedClientId('existing');
+      }
+    }
+  }, [editService]);
 
   useEffect(() => {
     const loadServices = () => {
@@ -124,7 +143,6 @@ const handleSubmit = (e: React.FormEvent) => {
       return;
     }
 
-    const clientId = generateId();
     const validServices = showServicesSection ? services.filter(s => s.name.trim()) : [];
     const hasAnyService = validServices.length > 0;
 
@@ -133,6 +151,31 @@ const handleSubmit = (e: React.FormEvent) => {
       return;
     }
 
+    if (isEditing && editService) {
+      const updatedService: Service = {
+        ...editService.service,
+        name: validServices[0]?.name.trim() || editService.service.name,
+        price: validServices[0]?.price.trim() ? parseFloat(validServices[0].price) : editService.service.price,
+        date: validServices[0]?.date || editService.service.date,
+        time: validServices[0]?.time || editService.service.time,
+      };
+      
+      const editClient: Client = {
+        id: editService.clientId,
+        name: clientName.trim(),
+        address: clientAddress.trim(),
+        phone: clientPhone.trim() || undefined,
+        services: [updatedService],
+        createdAt: new Date().toISOString(),
+      };
+      
+      onSave(editClient, true);
+      toast.success('Cita actualizada');
+      onClose();
+      return;
+    }
+
+    const clientId = generateId();
     const clientServices: Service[] = validServices.map(s => ({
       id: generateId(),
       clientId,
@@ -168,7 +211,7 @@ const handleSubmit = (e: React.FormEvent) => {
         <div className="sticky top-0 bg-surface border-b border-border/50 p-4 z-10">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-primary">
-              {clientOnlyMode ? 'Nuevo Cliente' : 'Nueva Cita'}
+              {isEditing ? 'Editar Cita' : clientOnlyMode ? 'Nuevo Cliente' : 'Nueva Cita'}
             </h2>
             <button 
               onClick={onClose}

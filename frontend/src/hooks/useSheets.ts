@@ -254,6 +254,26 @@ export function useSheets() {
     setIsLoaded(true);
   }, []);
 
+  const updateServiceData = useCallback((clientId: string, updatedService: Service) => {
+    const updatedClients = clients.map(c => {
+      if (c.id === clientId) {
+        const newServices = c.services?.map(s => 
+          s.id === updatedService.id ? updatedService : s
+        ) || [updatedService];
+        return { ...c, services: newServices };
+      }
+      return c;
+    });
+    
+    const updatedServicesList = services.map(s => 
+      s.id === updatedService.id ? updatedService : s
+    );
+    
+    setClients(updatedClients);
+    setServices(updatedServicesList);
+    saveToStorage(updatedClients, updatedServicesList);
+  }, [clients, services, saveToStorage]);
+
   return {
     clients,
     services,
@@ -266,6 +286,7 @@ export function useSheets() {
     addServiceToClient,
     removeServiceFromClient,
     updateService,
+    updateServiceData,
     syncData,
   };
 }
