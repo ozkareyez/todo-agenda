@@ -58,3 +58,11 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Next.js caché y archivos temporales
+.next/
+*.pack
+*.pack.gz
+*.nft.json
+*.old
+.cache/
