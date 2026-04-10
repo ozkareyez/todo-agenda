@@ -2,10 +2,11 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { X, Plus, Trash2, Calendar, Clock, MapPin, User, Check } from 'lucide-react';
+import { X, Plus, Trash2, Calendar, Clock, MapPin, User, Check, Settings } from 'lucide-react';
 import { Client, Service } from '@/types';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { ServiceManager } from './ServiceManager';
 
 interface ClientFormProps {
   onClose: () => void;
@@ -35,23 +36,32 @@ export function ClientForm({ onClose, onSave, existingClients = [], clientOnlyMo
   const [clientPhone, setClientPhone] = useState('');
   const [serviceOptions, setServiceOptions] = useState<ServiceOption[]>([]);
   const [showServicesSection, setShowServicesSection] = useState(!clientOnlyMode);
+  const [showServiceManager, setShowServiceManager] = useState(false);
   const [services, setServices] = useState<ServiceFormData[]>([
     { name: '', price: '', date: format(new Date(), 'yyyy-MM-dd'), time: '09:00' }
   ]);
 
   useEffect(() => {
-    const stored = localStorage.getItem('serviciosPrecios');
-    if (stored) {
+    const loadServices = () => {
+      let stored = localStorage.getItem('serviciosPrecios');
+      if (!stored) {
+        const defaultServices = [
+          { id: '1', name: 'Corte de cabello', price: 150 },
+          { id: '2', name: 'Corte + Barba', price: 250 },
+          { id: '3', name: 'Barba', price: 100 },
+          { id: '4', name: 'Tintado', price: 300 },
+          { id: '5', name: 'Cejas', price: 80 },
+          { id: '6', name: 'Tratamiento', price: 200 },
+        ];
+        localStorage.setItem('serviciosPrecios', JSON.stringify(defaultServices));
+        stored = JSON.stringify(defaultServices);
+      }
       setServiceOptions(JSON.parse(stored));
-    } else {
-      fetch('http://localhost:3001/api/sheets?sheet=ServiciosPrecios')
-        .then(res => res.json())
-        .then(data => {
-          setServiceOptions(data);
-          localStorage.setItem('serviciosPrecios', JSON.stringify(data));
-        })
-        .catch(err => console.error('Error loading services:', err));
-    }
+    };
+
+    loadServices();
+    window.addEventListener('storage', loadServices);
+    return () => window.removeEventListener('storage', loadServices);
   }, []);
 
   const handleClientSelect = (clientId: string) => {
@@ -242,14 +252,24 @@ const handleSubmit = (e: React.FormEvent) => {
                 <>
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-primary">Servicios</h3>
-                    <button
-                      type="button"
-                      onClick={addService}
-                      className="text-xs text-accent font-medium flex items-center gap-1"
-                    >
-                      <Plus className="w-3 h-3" />
-                      Agregar
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowServiceManager(true)}
+                        className="text-xs text-muted font-medium flex items-center gap-1"
+                        title="Gestionar servicios"
+                      >
+                        <Settings className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={addService}
+                        className="text-xs text-accent font-medium flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        Agregar
+                      </button>
+                    </div>
                   </div>
 
                   {services.map((service, idx) => (
@@ -325,6 +345,12 @@ const handleSubmit = (e: React.FormEvent) => {
             </button>
           </div>
         </form>
+        {showServiceManager && (
+          <ServiceManager 
+            onClose={() => setShowServiceManager(false)} 
+            onSaved={() => {}} 
+          />
+        )}
       </div>
     </div>
   );
