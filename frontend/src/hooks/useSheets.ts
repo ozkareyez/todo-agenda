@@ -77,17 +77,56 @@ export function useSheets() {
   }, [loadFromStorage, saveToStorage]);
 
   const addClient = useCallback(async (client: Client) => {
-    // VALIDACIÓN SINCRONA - verificar conflicto ANTES de guardar
+    const normalize = (s: string) => s.trim().toLowerCase();
+    const clientName = normalize(client.name);
+    const clientPhone = client.phone || '';
+
+    const existingClientIndex = clients.findIndex(c => 
+      normalize(c.name) === clientName && (c.phone || '') === clientPhone
+    );
+
+    if (existingClientIndex >= 0) {
+      const existingClient = clients[existingClientIndex];
+      
+      const newServices = client.services.map(s => ({
+        ...s,
+        clientId: existingClient.id
+      }));
+
+      const hasConflict = services.some(s => 
+        newServices.some(cs => cs.date === s.date && cs.time === s.time)
+      );
+      
+      if (hasConflict) {
+        toast.error('Ya existe una cita para esta fecha y hora');
+        return;
+      }
+
+      const updatedClient = {
+        ...existingClient,
+        services: [...(existingClient.services || []), ...newServices]
+      };
+
+      const updatedClients = [...clients];
+      updatedClients[existingClientIndex] = updatedClient;
+
+      setClients(updatedClients);
+      setServices(prev => [...prev, ...newServices]);
+      saveToStorage(updatedClients, [...services, ...newServices]);
+
+      toast.success(`Cita agregada a ${existingClient.name}`);
+      return;
+    }
+
     const hasConflict = services.some(s => 
       client.services.some(cs => cs.date === s.date && cs.time === s.time)
     );
     
     if (hasConflict) {
       toast.error('Ya existe una cita para esta fecha y hora');
-      return; // No guarda nada
+      return;
     }
 
-    // Solo si no hay conflicto, guardar
     setClients(prev => [...prev, client]);
     setServices(prev => [...prev, ...client.services]);
     saveToStorage([...clients, client], [...services, ...client.services]);
@@ -101,7 +140,6 @@ export function useSheets() {
       } catch (e: unknown) {
         const err = e as { message?: string; status?: number };
         if (err.status === 409 || err.message?.includes('409') || err.message?.includes('ya existe')) {
-          // Revertir cambios
           setClients(prev => prev.filter(c => c.id !== client.id));
           setServices(services);
           saveToStorage(clients, services);

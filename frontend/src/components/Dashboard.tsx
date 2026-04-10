@@ -23,6 +23,7 @@ interface ServiceWithClient extends Service {
 export function Dashboard({ clients, onAddClick, onAddClientOnly, onToggleComplete }: DashboardProps) {
   const [period, setPeriod] = useState<FilterPeriod>('today');
   const [showReminders, setShowReminders] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const filteredServices = useMemo(() => {
     const today = new Date();
@@ -47,6 +48,9 @@ export function Dashboard({ clients, onAddClick, onAddClientOnly, onToggleComple
 
     return allServices.filter(service => {
       const serviceDate = parseISO(service.date);
+      const isCompleted = service.completed === true;
+      
+      if (isCompleted && !showCompleted) return false;
       
       switch (period) {
         case 'today':
@@ -222,6 +226,17 @@ export function Dashboard({ clients, onAddClick, onAddClientOnly, onToggleComple
               {p === 'today' ? 'Hoy' : p === 'week' ? 'Semana' : 'Mes'}
             </button>
           ))}
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <label className="flex items-center gap-2 text-sm text-muted">
+            <input
+              type="checkbox"
+              checked={showCompleted}
+              onChange={(e) => setShowCompleted(e.target.checked)}
+              className="w-4 h-4 rounded border-border accent-accent"
+            />
+            Mostrar completadas
+          </label>
         </div>
       </div>
 

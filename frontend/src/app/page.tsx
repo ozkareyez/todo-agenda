@@ -62,7 +62,7 @@ export default function Home() {
               </div>
               <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
                 <div className="space-y-2">
-                  {clients.map((client, idx) => (
+                  {clients.filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i).map((client, idx) => (
                     <div 
                       key={`${client.id}-${idx}`}
                       className="p-3 rounded-xl bg-background border border-border/30"
