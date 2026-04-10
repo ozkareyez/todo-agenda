@@ -143,7 +143,7 @@ export function Dashboard({ clients, onAddClick, onAddClientOnly, onToggleComple
             <p className="text-muted text-sm mt-1">{format(new Date(), "EEEE, d 'de' MMMM", { locale: es })}</p>
           </div>
           <div className="flex gap-2">
-            {onAddClientOnly && clients.length > 0 && (
+            {onAddClientOnly && (
               <button
                 onClick={onAddClientOnly}
                 className="w-12 h-12 rounded-full bg-surface text-primary flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 border border-border"
